@@ -19,6 +19,7 @@ struct CommandTests {
 
     @Test func parseSpaceRotate() {
         #expect(Command.parse(["space", "--rotate", "90"]) == .success(.spaceRotate(90)))
+        #expect(Command.parse(["space", "--rotate", "270"]) == .success(.spaceRotate(270)))
     }
 
     @Test func parseSpaceBalance() {
@@ -30,8 +31,21 @@ struct CommandTests {
         #expect(Command.parse(["space", "--layout", "float"]) == .success(.spaceLayout(.float)))
     }
 
+    @Test func parseQueryAndSystemCommands() {
+        #expect(Command.parse(["query", "windows"]) == .success(.queryWindows))
+        #expect(Command.parse(["query", "status"]) == .success(.queryStatus))
+        #expect(Command.parse(["reload"]) == .success(.reloadConfig))
+        #expect(Command.parse(["ping"]) == .success(.ping))
+    }
+
     @Test func parseInvalid() {
         if case .failure = Command.parse(["window", "--unknown"]) {
+            #expect(Bool(true))
+        } else {
+            #expect(Bool(false))
+        }
+
+        if case .failure = Command.parse(["space", "--rotate", "45"]) {
             #expect(Bool(true))
         } else {
             #expect(Bool(false))
@@ -57,5 +71,9 @@ struct CommandTests {
         #expect(Command.spaceRotate(90).serialize() == "space --rotate 90")
         #expect(Command.spaceBalance.serialize() == "space --balance")
         #expect(Command.spaceLayout(.bsp).serialize() == "space --layout bsp")
+        #expect(Command.queryWindows.serialize() == "query windows")
+        #expect(Command.queryStatus.serialize() == "query status")
+        #expect(Command.reloadConfig.serialize() == "reload")
+        #expect(Command.ping.serialize() == "ping")
     }
 }

@@ -106,7 +106,7 @@ Task.detached {
 }
 
 // 5. Watch for workspace events (app activate, etc.)
-NotificationCenter.default.addObserver(
+NSWorkspace.shared.notificationCenter.addObserver(
     forName: NSWorkspace.didActivateApplicationNotification,
     object: nil,
     queue: .main

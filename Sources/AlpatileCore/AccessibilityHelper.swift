@@ -34,8 +34,15 @@ public struct AccessibilityHelper {
         var origin: CGPoint = .zero
         var size: CGSize = .zero
 
-        guard AXValueGetValue(posVal as! AXValue, .cgPoint, &origin),
-              AXValueGetValue(sizeVal as! AXValue, .cgSize, &size) else {
+        guard CFGetTypeID(posVal) == AXValueGetTypeID(),
+              CFGetTypeID(sizeVal) == AXValueGetTypeID() else {
+            return nil
+        }
+        let posAxVal = posVal as! AXValue
+        let sizeAxVal = sizeVal as! AXValue
+
+        guard AXValueGetValue(posAxVal, .cgPoint, &origin),
+              AXValueGetValue(sizeAxVal, .cgSize, &size) else {
             return nil
         }
 
@@ -73,6 +80,9 @@ public struct AccessibilityHelper {
             return nil
         }
 
+        guard CFGetTypeID(focused) == AXUIElementGetTypeID() else {
+            return nil
+        }
         let windowElement = focused as! AXUIElement
         guard let wid = getWindowID(for: windowElement) else {
             return nil

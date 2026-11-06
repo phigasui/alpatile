@@ -222,11 +222,16 @@ public final class BSPTree: @unchecked Sendable {
         guard let root = root else { return }
         func rotateNode(_ node: BSPNode) {
             if !node.isLeaf {
-                node.splitType = node.splitType.opposite
-                // Swap children for clockwise 90-degree visual rotation
-                let temp = node.firstChild
-                node.firstChild = node.secondChild
-                node.secondChild = temp
+                let oldSplit = node.splitType
+                node.splitType = oldSplit.opposite
+                // Clockwise 90-degree rotation in screen coordinates (origin top-left):
+                // Vertical -> Horizontal: left becomes top, right becomes bottom (no swap)
+                // Horizontal -> Vertical: top becomes right, bottom becomes left (swap required)
+                if oldSplit == .horizontal {
+                    let temp = node.firstChild
+                    node.firstChild = node.secondChild
+                    node.secondChild = temp
+                }
 
                 if let first = node.firstChild { rotateNode(first) }
                 if let second = node.secondChild { rotateNode(second) }

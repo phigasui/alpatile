@@ -24,6 +24,64 @@ public struct Config: Sendable, Codable, Equatable {
         self.ignoreApps = ignoreApps
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case topPadding = "topPadding"
+        case topPaddingSnake = "top_padding"
+        case bottomPadding = "bottomPadding"
+        case bottomPaddingSnake = "bottom_padding"
+        case leftPadding = "leftPadding"
+        case leftPaddingSnake = "left_padding"
+        case rightPadding = "rightPadding"
+        case rightPaddingSnake = "right_padding"
+        case windowGap = "windowGap"
+        case windowGapSnake = "window_gap"
+        case gap = "gap"
+        case padding = "padding"
+        case ignoreApps = "ignoreApps"
+        case ignoreAppsSnake = "ignore_apps"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        let uniformPadding = try container.decodeIfPresent(CGFloat.self, forKey: .padding) ?? 0
+
+        self.topPadding = try container.decodeIfPresent(CGFloat.self, forKey: .topPadding)
+            ?? container.decodeIfPresent(CGFloat.self, forKey: .topPaddingSnake)
+            ?? uniformPadding
+
+        self.bottomPadding = try container.decodeIfPresent(CGFloat.self, forKey: .bottomPadding)
+            ?? container.decodeIfPresent(CGFloat.self, forKey: .bottomPaddingSnake)
+            ?? uniformPadding
+
+        self.leftPadding = try container.decodeIfPresent(CGFloat.self, forKey: .leftPadding)
+            ?? container.decodeIfPresent(CGFloat.self, forKey: .leftPaddingSnake)
+            ?? uniformPadding
+
+        self.rightPadding = try container.decodeIfPresent(CGFloat.self, forKey: .rightPadding)
+            ?? container.decodeIfPresent(CGFloat.self, forKey: .rightPaddingSnake)
+            ?? uniformPadding
+
+        self.windowGap = try container.decodeIfPresent(CGFloat.self, forKey: .windowGap)
+            ?? container.decodeIfPresent(CGFloat.self, forKey: .windowGapSnake)
+            ?? container.decodeIfPresent(CGFloat.self, forKey: .gap)
+            ?? 0
+
+        self.ignoreApps = try container.decodeIfPresent([String].self, forKey: .ignoreApps)
+            ?? container.decodeIfPresent([String].self, forKey: .ignoreAppsSnake)
+            ?? ["DeepL", "System Settings", "システム環境設定", "Finder"]
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(topPadding, forKey: .topPadding)
+        try container.encode(bottomPadding, forKey: .bottomPadding)
+        try container.encode(leftPadding, forKey: .leftPadding)
+        try container.encode(rightPadding, forKey: .rightPadding)
+        try container.encode(windowGap, forKey: .windowGap)
+        try container.encode(ignoreApps, forKey: .ignoreApps)
+    }
+
     public static let `default` = Config()
 
     public static func defaultConfigURL() -> URL {
@@ -40,6 +98,8 @@ public struct Config: Sendable, Codable, Equatable {
             let decoder = JSONDecoder()
             return try decoder.decode(Config.self, from: data)
         } catch {
+            let msg = "[alpatile] Warning: Failed to parse config at \(url.path): \(error). Using default config.\n"
+            FileHandle.standardError.write(Data(msg.utf8))
             return .default
         }
     }

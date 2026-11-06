@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "alpatile",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v14)
     ],
     products: [
         .executable(name: "alpatile", targets: ["alpatile"]),
@@ -30,7 +30,13 @@ let package = Package(
         .testTarget(
             name: "AlpatileCoreTests",
             dependencies: ["AlpatileCore"],
-            path: "Tests/AlpatileCoreTests"
+            path: "Tests/AlpatileCoreTests",
+            swiftSettings: [
+                .unsafeFlags([
+                    "-load-plugin-library",
+                    "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib"
+                ])
+            ]
         ),
     ]
 )

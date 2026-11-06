@@ -16,7 +16,7 @@ struct ConfigTests {
         #expect(!config.shouldIgnore(appName: "Google Chrome"))
     }
 
-    @Test func codable() throws {
+    @Test func codableCamelCase() throws {
         let original = Config(
             topPadding: 10,
             bottomPadding: 10,
@@ -33,5 +33,28 @@ struct ConfigTests {
         let decoded = try decoder.decode(Config.self, from: data)
 
         #expect(original == decoded)
+    }
+
+    @Test func decodeSnakeCaseAndShorthand() throws {
+        let json = """
+        {
+            "padding": 12,
+            "gap": 6,
+            "ignore_apps": [
+                "CustomIgnoreApp"
+            ]
+        }
+        """
+        let data = Data(json.utf8)
+        let decoder = JSONDecoder()
+        let decoded = try decoder.decode(Config.self, from: data)
+
+        #expect(decoded.topPadding == 12)
+        #expect(decoded.bottomPadding == 12)
+        #expect(decoded.leftPadding == 12)
+        #expect(decoded.rightPadding == 12)
+        #expect(decoded.windowGap == 6)
+        #expect(decoded.shouldIgnore(appName: "CustomIgnoreApp"))
+        #expect(!decoded.shouldIgnore(appName: "OtherApp"))
     }
 }
