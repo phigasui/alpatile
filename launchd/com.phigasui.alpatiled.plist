@@ -6,7 +6,7 @@
     <string>com.phigasui.alpatiled</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/alpatiled</string>
+        <string>/Users/phigasui/.local/bin/alpatiled</string>
     </array>
     <key>KeepAlive</key>
     <true/>
