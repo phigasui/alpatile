@@ -223,7 +223,7 @@ public actor WindowEngine {
 
         var foundIDs: Set<WindowID> = []
         let runningApps = NSWorkspace.shared.runningApplications
-        let appByPid = Dictionary(uniqueKeysWithValues: runningApps.map { ($0.processIdentifier, $0) })
+        let appByPid = Dictionary(runningApps.map { ($0.processIdentifier, $0) }, uniquingKeysWith: { first, _ in first })
 
         for winInfo in windowInfoList {
             guard let layer = winInfo[kCGWindowLayer as String] as? Int, layer == 0,
@@ -241,7 +241,8 @@ public actor WindowEngine {
                 continue
             }
 
-            guard let app = appByPid[pid], app.activationPolicy == .regular else {
+            guard let app = appByPid[pid] ?? NSRunningApplication(processIdentifier: pid),
+                  app.activationPolicy == .regular else {
                 continue
             }
 
