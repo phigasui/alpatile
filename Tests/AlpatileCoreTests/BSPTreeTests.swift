@@ -175,4 +175,58 @@ struct BSPTreeTests {
         let framesAfter = tree.calculateFrames(bounds: bounds)
         #expect(framesAfter[0].rect.width == 500)
     }
+
+    @Test func balanceGivesEqualSizesToWindowsInOneRow() {
+        let tree = BSPTree()
+        tree.insert(windowId: 1)
+        tree.insert(windowId: 2)
+        tree.insert(windowId: 3, near: 2)
+        // Make every split vertical (left/right): all three windows form one row.
+        func makeVertical(_ node: BSPNode?) {
+            guard let node, !node.isLeaf else { return }
+            node.splitType = .vertical
+            makeVertical(node.firstChild)
+            makeVertical(node.secondChild)
+        }
+        makeVertical(tree.root)
+
+        tree.balance()
+        let frames = tree.calculateFrames(bounds: CGRect(x: 0, y: 0, width: 900, height: 600))
+        #expect(frames.count == 3)
+        for frame in frames {
+            #expect(frame.rect.width == 300)
+            #expect(frame.rect.height == 600)
+        }
+    }
+
+    @Test func balanceEqualizesPerAxisForMixedSplits() {
+        // Layout: V(1, H(2, V(3, 4))) -> windows 1, 3 and 4 share one row, so each gets a third of the width.
+        let tree = BSPTree()
+        tree.insert(windowId: 1)
+        tree.insert(windowId: 2)
+        tree.insert(windowId: 3, near: 2)
+        tree.insert(windowId: 4, near: 3)
+        tree.root?.ratio = 0.9
+        tree.balance()
+        let frames = Dictionary(uniqueKeysWithValues: tree.calculateFrames(bounds: CGRect(x: 0, y: 0, width: 900, height: 600)).map { ($0.id, $0.rect) })
+        #expect(frames[1]?.width == 300)
+        #expect(frames[3]?.width == 300)
+        #expect(frames[4]?.width == 300)
+        #expect(frames[2]?.width == 600)
+        #expect(frames[2]?.height == 300)
+    }
+
+    @Test func selectTreeRestoresSavedSpaceLayout() {
+        let spaceA = BSPTree()
+        spaceA.insert(windowId: 1)
+        spaceA.insert(windowId: 2)
+        let spaceB = BSPTree()
+        spaceB.insert(windowId: 10)
+        spaceB.insert(windowId: 11)
+
+        #expect(WindowEngine.selectTree(for: [1, 2], among: [spaceA, spaceB], preferring: spaceB) === spaceA)
+        #expect(WindowEngine.selectTree(for: [10, 11, 12], among: [spaceA, spaceB], preferring: spaceA) === spaceB)
+        // A window shared by every Space must not glue a brand new Space to an old tree.
+        #expect(WindowEngine.selectTree(for: [1, 20, 21], among: [spaceA, spaceB], preferring: nil) == nil)
+    }
 }

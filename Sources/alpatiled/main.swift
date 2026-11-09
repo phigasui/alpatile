@@ -116,6 +116,27 @@ NSWorkspace.shared.notificationCenter.addObserver(
     }
 }
 
+// Space switches and display changes don't activate an app, so sync on them explicitly.
+NSWorkspace.shared.notificationCenter.addObserver(
+    forName: NSWorkspace.activeSpaceDidChangeNotification,
+    object: nil,
+    queue: .main
+) { _ in
+    Task {
+        await engine.scanAndSyncWindows()
+    }
+}
+
+NotificationCenter.default.addObserver(
+    forName: NSApplication.didChangeScreenParametersNotification,
+    object: nil,
+    queue: .main
+) { _ in
+    Task {
+        await engine.scanAndSyncWindows()
+    }
+}
+
 // Initial window scan
 Task {
     await engine.scanAndSyncWindows()
