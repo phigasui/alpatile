@@ -206,16 +206,28 @@ public final class BSPTree: @unchecked Sendable {
         return true
     }
 
+    /// Balances the tree so that windows lined up along the same axis get equal sizes.
+    /// Each node's ratio is derived from how many windows each side holds along the node's split axis.
     public func balance() {
         guard let root = root else { return }
-        func resetRatio(_ node: BSPNode) {
-            if !node.isLeaf {
-                node.ratio = 0.5
-                if let first = node.firstChild { resetRatio(first) }
-                if let second = node.secondChild { resetRatio(second) }
-            }
+
+        func span(_ node: BSPNode, axis: SplitType) -> Int {
+            guard !node.isLeaf, let first = node.firstChild, let second = node.secondChild else { return 1 }
+            let firstSpan = span(first, axis: axis)
+            let secondSpan = span(second, axis: axis)
+            return node.splitType == axis ? firstSpan + secondSpan : max(firstSpan, secondSpan)
         }
-        resetRatio(root)
+
+        func apply(_ node: BSPNode) {
+            guard !node.isLeaf, let first = node.firstChild, let second = node.secondChild else { return }
+            let firstSpan = span(first, axis: node.splitType)
+            let secondSpan = span(second, axis: node.splitType)
+            node.ratio = CGFloat(firstSpan) / CGFloat(firstSpan + secondSpan)
+            apply(first)
+            apply(second)
+        }
+
+        apply(root)
     }
 
     public func rotate90() {
