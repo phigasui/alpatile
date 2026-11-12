@@ -57,4 +57,40 @@ struct ConfigTests {
         #expect(decoded.shouldIgnore(appName: "CustomIgnoreApp"))
         #expect(!decoded.shouldIgnore(appName: "OtherApp"))
     }
+
+    @Test func defaultConfigURLRespectsAndFallsBackFromHomeEnvironment() {
+        let fallback = URL(fileURLWithPath: "/Users/fallback", isDirectory: true)
+
+        let withHome = Config.defaultConfigURL(
+            environment: ["HOME": "/Users/custom"],
+            fallbackHome: fallback
+        )
+        #expect(withHome.path == "/Users/custom/.config/alpatile/config.json")
+
+        let missingHome = Config.defaultConfigURL(
+            environment: ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin"],
+            fallbackHome: fallback
+        )
+        #expect(missingHome.path == "/Users/fallback/.config/alpatile/config.json")
+
+        let blankHome = Config.defaultConfigURL(
+            environment: ["HOME": "   "],
+            fallbackHome: fallback
+        )
+        #expect(blankHome.path == "/Users/fallback/.config/alpatile/config.json")
+    }
+
+    @Test func loadMissingOrInvalidConfigFallsBackToDefault() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("alpatile-config-tests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let missingURL = dir.appendingPathComponent("missing.json")
+        #expect(Config.load(from: missingURL) == .default)
+
+        let invalidURL = dir.appendingPathComponent("invalid.json")
+        try Data("{not valid json".utf8).write(to: invalidURL)
+        #expect(Config.load(from: invalidURL) == .default)
+    }
 }
