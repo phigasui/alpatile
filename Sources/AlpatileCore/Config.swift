@@ -84,8 +84,17 @@ public struct Config: Sendable, Codable, Equatable {
 
     public static let `default` = Config()
 
-    public static func defaultConfigURL() -> URL {
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+    public static func defaultConfigURL(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        fallbackHome: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) -> URL {
+        let homeDir: URL
+        if let envHome = environment["HOME"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !envHome.isEmpty {
+            homeDir = URL(fileURLWithPath: envHome, isDirectory: true)
+        } else {
+            homeDir = fallbackHome
+        }
         return homeDir.appendingPathComponent(".config/alpatile/config.json")
     }
 
