@@ -117,6 +117,10 @@ alpatile window --warp south
 alpatile window --warp north
 alpatile window --warp east
 
+# 別ディスプレイへの移動（次 / 前）
+alpatile window --display next
+alpatile window --display prev
+
 # カレントノードの分割方向切替（水平 / 垂直）
 alpatile window --toggle split
 

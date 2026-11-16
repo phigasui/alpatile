@@ -9,6 +9,13 @@ struct CommandTests {
         #expect(Command.parse(["window", "--warp", "east"]) == .success(.windowWarp(.east)))
     }
 
+    @Test func parseWindowDisplay() {
+        #expect(Command.parse(["window", "--display", "next"]) == .success(.windowDisplay(.next)))
+        #expect(Command.parse(["window", "--display", "prev"]) == .success(.windowDisplay(.prev)))
+        #expect(Command.parse(["window", "--display", "NEXT"]) == .success(.windowDisplay(.next)))
+        #expect(Command.parse(["window", "--display", "PREV"]) == .success(.windowDisplay(.prev)))
+    }
+
     @Test func parseWindowToggle() {
         #expect(Command.parse(["window", "--toggle", "split"]) == .success(.windowToggleSplit))
     }
@@ -45,6 +52,18 @@ struct CommandTests {
             #expect(Bool(false))
         }
 
+        if case .failure = Command.parse(["window", "--display"]) {
+            #expect(Bool(true))
+        } else {
+            #expect(Bool(false))
+        }
+
+        if case .failure = Command.parse(["window", "--display", "invalid"]) {
+            #expect(Bool(true))
+        } else {
+            #expect(Bool(false))
+        }
+
         if case .failure = Command.parse(["space", "--rotate", "45"]) {
             #expect(Bool(true))
         } else {
@@ -66,6 +85,8 @@ struct CommandTests {
 
     @Test func serialization() {
         #expect(Command.windowWarp(.west).serialize() == "window --warp west")
+        #expect(Command.windowDisplay(.next).serialize() == "window --display next")
+        #expect(Command.windowDisplay(.prev).serialize() == "window --display prev")
         #expect(Command.windowToggleSplit.serialize() == "window --toggle split")
         #expect(Command.windowMaximize.serialize() == "window --maximize")
         #expect(Command.spaceRotate(90).serialize() == "space --rotate 90")

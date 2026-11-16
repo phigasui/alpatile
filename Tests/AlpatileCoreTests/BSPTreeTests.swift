@@ -229,4 +229,34 @@ struct BSPTreeTests {
         // A window shared by every Space must not glue a brand new Space to an old tree.
         #expect(WindowEngine.selectTree(for: [1, 20, 21], among: [spaceA, spaceB], preferring: nil) == nil)
     }
+
+    @Test func relocateBetweenTrees() {
+        let treeA = BSPTree()
+        treeA.insert(windowId: 1)
+        treeA.insert(windowId: 2)
+        let treeB = BSPTree()
+        treeB.insert(windowId: 10)
+
+        // Relocate window 2 from treeA to treeB
+        let moved = treeA.relocate(windowId: 2, to: treeB)
+        #expect(moved)
+        #expect(treeA.allWindowIDs() == [1])
+        #expect(treeB.contains(windowId: 2))
+        #expect(treeB.allWindowIDs().count == 2)
+
+        // Relocate non-existent window returns false
+        #expect(!treeA.relocate(windowId: 999, to: treeB))
+
+        // Relocate last window from treeA makes treeA empty
+        let movedLast = treeA.relocate(windowId: 1, to: treeB)
+        #expect(movedLast)
+        #expect(treeA.isEmpty)
+        #expect(treeB.contains(windowId: 1))
+
+        // Relocate to empty tree
+        let emptyTree = BSPTree()
+        #expect(treeB.relocate(windowId: 10, to: emptyTree))
+        #expect(emptyTree.allWindowIDs() == [10])
+        #expect(!treeB.contains(windowId: 10))
+    }
 }

@@ -18,6 +18,10 @@ ctrl + cmd - j : alpatile window --warp south
 ctrl + cmd - k : alpatile window --warp north
 ctrl + cmd - l : alpatile window --warp east
 
+# 別ディスプレイへのウィンドウ移動
+ctrl + cmd - n : alpatile window --display next
+ctrl + cmd + shift - n : alpatile window --display prev
+
 # layout の切り替え
 ## 指定ウィンドウを全画面表示 (float + maximize)
 ctrl + cmd - f : alpatile space --layout float && alpatile window --maximize
@@ -40,6 +44,8 @@ ctrl + cmd - s : alpatile window --toggle split && alpatile space --balance
 | 下へ Warp | `yabai -m window --warp south` | `alpatile window --warp south` |
 | 上へ Warp | `yabai -m window --warp north` | `alpatile window --warp north` |
 | 右へ Warp | `yabai -m window --warp east` | `alpatile window --warp east` |
+| 別ディスプレイへ移動 (次) | `yabai -m window --display next` | `alpatile window --display next` |
+| 別ディスプレイへ移動 (前) | `yabai -m window --display prev` | `alpatile window --display prev` |
 | 最大化 | `yabai -m space --layout float && yabai -m window --grid 1:1:0:0:1:1` | `alpatile space --layout float && alpatile window --maximize` |
 | BSP 配置 | `yabai -m space --layout bsp` | `alpatile space --layout bsp` |
 | 90度回転 | `yabai -m space --rotate 90` | `alpatile space --rotate 90` |

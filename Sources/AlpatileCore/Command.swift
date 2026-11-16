@@ -8,6 +8,7 @@ public struct CommandError: Error, Equatable, CustomStringConvertible, Sendable 
 
 public enum Command: Sendable, Equatable {
     case windowWarp(Direction)
+    case windowDisplay(DisplayTarget)
     case windowToggleSplit
     case windowMaximize
     case spaceRotate(Int)
@@ -27,7 +28,7 @@ public enum Command: Sendable, Equatable {
         switch args[0] {
         case "window":
             guard args.count >= 2 else {
-                return .failure(CommandError("Missing window subcommand: --warp, --toggle, --maximize"))
+                return .failure(CommandError("Missing window subcommand: --warp, --display, --toggle, --maximize"))
             }
             switch args[1] {
             case "--warp":
@@ -35,6 +36,11 @@ public enum Command: Sendable, Equatable {
                     return .failure(CommandError("Usage: alpatile window --warp <west|south|north|east>"))
                 }
                 return .success(.windowWarp(direction))
+            case "--display":
+                guard args.count >= 3, let target = DisplayTarget(rawValue: args[2].lowercased()) else {
+                    return .failure(CommandError("Usage: alpatile window --display <next|prev>"))
+                }
+                return .success(.windowDisplay(target))
             case "--toggle":
                 guard args.count >= 3, args[2] == "split" else {
                     return .failure(CommandError("Usage: alpatile window --toggle split"))
@@ -92,6 +98,7 @@ public enum Command: Sendable, Equatable {
 
     Usage:
       alpatile window --warp <west|south|north|east>
+      alpatile window --display <next|prev>
       alpatile window --toggle split
       alpatile window --maximize
       alpatile space --rotate 90
@@ -106,6 +113,8 @@ public enum Command: Sendable, Equatable {
         switch self {
         case .windowWarp(let dir):
             return "window --warp \(dir.rawValue)"
+        case .windowDisplay(let target):
+            return "window --display \(target.rawValue)"
         case .windowToggleSplit:
             return "window --toggle split"
         case .windowMaximize:

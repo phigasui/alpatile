@@ -9,6 +9,7 @@ guard !args.isEmpty else {
 
     Usage:
       alpatile window --warp <west|south|north|east>
+      alpatile window --display <next|prev>
       alpatile window --toggle split
       alpatile window --maximize
       alpatile space --rotate 90
