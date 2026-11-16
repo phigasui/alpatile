@@ -196,6 +196,21 @@ public final class BSPTree: @unchecked Sendable {
         return true
     }
 
+    /// Relocates a window from this tree to another BSPTree.
+    @discardableResult
+    public func relocate(windowId: WindowID, to targetTree: BSPTree, near targetId: WindowID? = nil) -> Bool {
+        guard contains(windowId: windowId) else {
+            return false
+        }
+        if targetTree !== self && targetTree.contains(windowId: windowId) {
+            return false
+        }
+        guard remove(windowId: windowId) else {
+            return false
+        }
+        return targetTree.insert(windowId: windowId, near: targetId)
+    }
+
     @discardableResult
     public func toggleSplit(for windowId: WindowID) -> Bool {
         guard let leaf = findLeaf(windowId: windowId),

@@ -53,6 +53,26 @@ public actor WindowEngine {
 
     // MARK: - Display helpers
 
+    private var customDisplayIDsProvider: (@Sendable () -> [CGDirectDisplayID])?
+    private var customBoundsProvider: (@Sendable (CGDirectDisplayID) -> CGRect)?
+
+    internal func setCustomDisplayIDsProviderForTesting(_ provider: (@Sendable () -> [CGDirectDisplayID])?) {
+        self.customDisplayIDsProvider = provider
+    }
+
+    internal func setCustomBoundsProviderForTesting(_ provider: (@Sendable (CGDirectDisplayID) -> CGRect)?) {
+        self.customBoundsProvider = provider
+    }
+
+    internal func setDisplayLayoutsForTesting(displayID: CGDirectDisplayID, tree: BSPTree) {
+        displays[displayID] = DisplayLayouts(trees: [tree], active: tree)
+    }
+
+    internal func registerWindowForTesting(id: WindowID, pid: pid_t = 1, appName: String = "TestApp", title: String = "TestWindow") {
+        let appElement = AXUIElementCreateApplication(pid)
+        registeredWindows[id] = WindowEntry(id: id, pid: pid, appName: appName, title: title, element: appElement)
+    }
+
     private static func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
         (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }
@@ -63,6 +83,9 @@ public actor WindowEngine {
 
     /// Visible area (excluding menu bar / Dock) of the given display in AX coordinates.
     private func visibleAXBounds(of displayID: CGDirectDisplayID) -> CGRect {
+        if let custom = customBoundsProvider?(displayID) {
+            return custom
+        }
         let screens = NSScreen.screens
         let primaryHeight = screens.first?.frame.height ?? 1080
         let screen = screens.first(where: { Self.displayID(of: $0) == displayID }) ?? NSScreen.main ?? screens.first
@@ -70,6 +93,39 @@ public actor WindowEngine {
             return CGRect(x: 0, y: 0, width: 1920, height: 1080)
         }
         return CGRect.convertCocoaVisibleFrameToAX(cocoaFrame: screen.visibleFrame, primaryScreenHeight: primaryHeight)
+    }
+
+    /// Returns ordered display IDs.
+    /// Prefers physical display arrangement via NSScreen.screens sorted left-to-right (minX),
+    /// followed by any active displays tracked by WindowEngine not present in NSScreen.
+    private func getOrderedDisplayIDs() -> [CGDirectDisplayID] {
+        if let custom = customDisplayIDsProvider?() {
+            return custom
+        }
+        var ids: [CGDirectDisplayID] = []
+        let screens = NSScreen.screens
+        if !screens.isEmpty {
+            let sortedScreens = screens.sorted { s1, s2 in
+                if s1.frame.minX != s2.frame.minX {
+                    return s1.frame.minX < s2.frame.minX
+                }
+                return s1.frame.minY < s2.frame.minY
+            }
+            for screen in sortedScreens {
+                if let id = Self.displayID(of: screen), !ids.contains(id) {
+                    ids.append(id)
+                }
+            }
+        }
+        for displayID in displays.keys.sorted() {
+            if !ids.contains(displayID) {
+                ids.append(displayID)
+            }
+        }
+        if ids.isEmpty, let main = mainDisplayID() {
+            ids.append(main)
+        }
+        return ids
     }
 
     private func activeTree(of displayID: CGDirectDisplayID) -> BSPTree? {
@@ -180,6 +236,70 @@ public actor WindowEngine {
             }
             await retile(displayID: focused.displayID)
             return "OK toggled split for window \(focused.windowId)"
+
+        case .windowDisplay(let target):
+            guard let focused = getEffectiveFocused() else {
+                return "ERROR: No focused window found"
+            }
+            var displayIDs = getOrderedDisplayIDs()
+            if !displayIDs.contains(focused.displayID) {
+                displayIDs.append(focused.displayID)
+            }
+            guard displayIDs.count >= 2 else {
+                return "ERROR: Only one display available"
+            }
+            guard let currentIndex = displayIDs.firstIndex(of: focused.displayID) else {
+                return "ERROR: Display not found"
+            }
+            let targetIndex: Int
+            switch target {
+            case .next:
+                targetIndex = (currentIndex + 1) % displayIDs.count
+            case .prev:
+                targetIndex = (currentIndex - 1 + displayIDs.count) % displayIDs.count
+            }
+            let targetDisplayID = displayIDs[targetIndex]
+
+            var targetLayouts = displays[targetDisplayID] ?? DisplayLayouts()
+            let targetTree: BSPTree
+            if let active = targetLayouts.active {
+                targetTree = active
+            } else if let first = targetLayouts.trees.first {
+                targetTree = first
+                targetLayouts.active = first
+            } else {
+                let created = BSPTree()
+                targetLayouts.trees.append(created)
+                targetLayouts.active = created
+                targetTree = created
+            }
+
+            guard focused.tree.relocate(windowId: focused.windowId, to: targetTree) else {
+                return "ERROR: Failed to relocate window \(focused.windowId) to display \(targetDisplayID)"
+            }
+
+            displays[targetDisplayID] = targetLayouts
+            if var currentLayouts = displays[focused.displayID] {
+                currentLayouts.trees.removeAll { $0 !== focused.tree && $0.isEmpty }
+                displays[focused.displayID] = currentLayouts
+            }
+
+            if layoutMode == .float {
+                if let entry = registeredWindows[focused.windowId] {
+                    let targetBounds = visibleAXBounds(of: targetDisplayID)
+                    let currentFrame = AccessibilityHelper.getFrame(for: entry.element) ?? CGRect(x: 0, y: 0, width: 800, height: 600)
+                    let width = min(currentFrame.width, targetBounds.width)
+                    let height = min(currentFrame.height, targetBounds.height)
+                    let x = targetBounds.origin.x + (targetBounds.width - width) / 2
+                    let y = targetBounds.origin.y + (targetBounds.height - height) / 2
+                    let targetRect = CGRect(x: x, y: y, width: width, height: height)
+                    let change = FrameApplier.WindowChange(windowId: focused.windowId, pid: entry.pid, targetRect: targetRect)
+                    await frameApplier.apply(changes: [change]) { _, _ in entry.element }
+                }
+            } else {
+                await retile()
+            }
+            return "OK moved window \(focused.windowId) to display \(targetDisplayID)"
 
         case .windowMaximize:
             guard let focused = getEffectiveFocused() else {

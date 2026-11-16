@@ -10,6 +10,11 @@ public enum Direction: String, Sendable, Codable, CaseIterable {
     case east
 }
 
+public enum DisplayTarget: String, Sendable, Codable, CaseIterable {
+    case next
+    case prev
+}
+
 public enum SplitType: String, Sendable, Codable {
     case horizontal // Top and Bottom
     case vertical   // Left and Right
